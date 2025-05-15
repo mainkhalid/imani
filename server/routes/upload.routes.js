@@ -1,85 +1,76 @@
+// routes/upload.routes.js
 const express = require('express');
-const router = express.Router();
-const { authenticate, authorize } = require('../middleware/auth.middleware');
-const uploadMiddleware = require('../middleware/upload.middleware');
+const multer = require('multer');
 const { uploadMultipleFromBuffer } = require('../utils/cloudinary');
+const router = express.Router();
 
-// Apply authentication to all upload routes
-router.use(authenticate);
-
-// Upload single image to Cloudinary
-router.post(
-  '/single',
-  authorize(['admin', 'volunteer']),
-  uploadMiddleware.single('image'),
-  async (req, res) => {
-    try {
-      // Check if file exists
-      if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No image file provided' 
-        });
-      }
-
-      // Upload to Cloudinary using existing utility
-      const results = await uploadMultipleFromBuffer([{
-        buffer: req.file.buffer
-      }]);
-
-      // Return the uploaded image details
-      res.status(200).json({
-        success: true,
-        image: results[0]
-      });
-    } catch (error) {
-      console.error('Error uploading image to Cloudinary:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to upload image to Cloudinary',
-        error: error.message
-      });
+// Configure multer for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB file size limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
     }
   }
-);
+});
 
-// Upload multiple images to Cloudinary
-router.post(
-  '/multiple',
-  authorize(['admin', 'volunteer']),
-  uploadMiddleware.array('images', 5),
-  async (req, res) => {
-    try {
-      // Check if files exist
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No image files provided' 
-        });
-      }
-
-      // Format files for Cloudinary upload
-      const fileBuffers = req.files.map(file => ({
-        buffer: file.buffer
-      }));
-
-      // Upload to Cloudinary using existing utility
-      const results = await uploadMultipleFromBuffer(fileBuffers);
-
-      // Return the uploaded images details
-      res.status(200).json({
-        success: true,
-        images: results
-      });
-    } catch (error) {
-      console.error('Error uploading images to Cloudinary:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to upload images to Cloudinary',
-        error: error.message
+// Single image upload route
+router.post('/single', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No file uploaded' 
       });
     }
+
+    // Upload single file
+    const uploadResult = await uploadMultipleFromBuffer([req.file]);
+    
+    res.status(200).json({
+      success: true,
+      uploadedImages: uploadResult,
+      image: uploadResult[0]
+    });
+  } catch (error) {
+    console.error('Image upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
-);
+});
+
+// Multiple image upload route
+router.post('/multiple', upload.array('images', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No files uploaded' 
+      });
+    }
+
+    // Upload multiple files
+    const uploadResults = await uploadMultipleFromBuffer(req.files);
+    
+    res.status(200).json({
+      success: true,
+      uploadedImages: uploadResults
+    });
+  } catch (error) {
+    console.error('Image upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
 
 module.exports = router;

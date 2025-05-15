@@ -265,7 +265,7 @@ const uploadImageToCloudinary = async (file) => {
       toast.success('Visitation plan created successfully!', { id: saveToastId })
       
       // Redirect to visitation list
-      navigate('/admin/visitations', {
+      navigate('/admin/visitation-list', {
         state: { refreshVisitations: true }
       })
       

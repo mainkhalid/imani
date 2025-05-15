@@ -11,7 +11,7 @@ router.use(authenticate);
 // Create new visitation with optional images
 router.post(
   '/',
-  authorize(['admin', 'volunteer']), // Adjust roles as needed
+  authorize(['admin', 'user']), // Adjust roles as needed
   uploadMiddleware.array('images', 5),
   visitationController.createVisitation
 );
@@ -19,21 +19,21 @@ router.post(
 // Get all visitations (with optional filters)
 router.get(
   '/',
-  authorize(['admin', 'volunteer']),
+  authorize(['admin', 'user']),
   visitationController.getVisitations
 );
 
 // Get specific visitation by ID
 router.get(
   '/:id',
-  authorize(['admin', 'volunteer']),
+  authorize(['admin', 'user']),
   visitationController.getVisitation
 );
 
 // Update visitation
 router.put(
   '/:id',
-  authorize(['admin', 'volunteer']),
+  authorize(['admin', 'user']),
   visitationController.updateVisitation
 );
 
@@ -47,7 +47,7 @@ router.delete(
 // Upload images for visitation (separate endpoint if needed)
 router.post(
   '/:id/images',
-  authorize(['admin', 'volunteer']),
+  authorize(['admin', 'user']),
   uploadMiddleware.array('images', 5),
   visitationController.uploadImages
 );
@@ -55,7 +55,7 @@ router.post(
 // Get images for visitation
 router.get(
   '/:id/images',
-  authorize(['admin', 'volunteer']),
+  authorize(['admin', 'user']),
   visitationController.getVisitationImages
 );
 

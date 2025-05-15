@@ -1,4 +1,5 @@
-import React from 'react'
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 export const HeroSection = () => {
   return (
@@ -13,12 +14,12 @@ export const HeroSection = () => {
               Imani Foundation provides shelter, education, and care for
               vulnerable children in Kenya.
             </p>
-            <a
-              href="#donate"
-              className="inline-block bg-white text-orange-600 hover:bg-gray-100 font-bold py-3 px-6 rounded-md shadow-md"
+            <Link
+              to="/user/donate"
+              className="inline-block bg-white text-orange-600 hover:bg-gray-100 transition-colors duration-200 font-bold py-3 px-6 rounded-md shadow-md hover:shadow-lg"
             >
               Donate Now
-            </a>
+            </Link>
           </div>
           <div className="md:w-1/2">
             <img
@@ -30,5 +31,5 @@ export const HeroSection = () => {
         </div>
       </div>
     </section>
-  )
-}
+  );
+};

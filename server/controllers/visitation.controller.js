@@ -1,15 +1,31 @@
-// server/controllers/visitation.controller.js
+// server/controllers/visitation.controller.js - FIXED VERSION
 const Visitation = require('../models/visitation.model');
 const { uploadMultipleFromBuffer } = require('../utils/cloudinary');
 
 exports.createVisitation = async (req, res) => {
   try {
-    const { homeName, visitDate, numberOfChildren, status, notes, budget } = req.body;
+    const { 
+      homeName, 
+      visitDate, 
+      numberOfChildren, 
+      status, 
+      notes, 
+      budget,
+      images: existingImages // In case images are sent from frontend
+    } = req.body;
     
-    let images = [];
+    let uploadedImages = [];
+    
+    // Handle file uploads from multer/express-fileupload
     if (req.files && req.files.length > 0) {
-      images = await uploadMultipleFromBuffer(req.files);
+      uploadedImages = await uploadMultipleFromBuffer(req.files);
     }
+    
+    // Merge existing images from frontend with newly uploaded images
+    const combinedImages = [
+      ...(existingImages || []), 
+      ...uploadedImages
+    ];
 
     const visitation = new Visitation({
       homeName,
@@ -18,7 +34,7 @@ exports.createVisitation = async (req, res) => {
       status,
       notes,
       budget,
-      images,
+      images: combinedImages, // Ensure images are saved
       createdBy: req.user._id
     });
 
@@ -26,9 +42,11 @@ exports.createVisitation = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: visitation
+      data: visitation,
+      uploadedImages: uploadedImages // Optional: return uploaded image details
     });
   } catch (error) {
+    console.error('Visitation creation error:', error);
     res.status(400).json({
       success: false,
       message: error.message
@@ -38,20 +56,27 @@ exports.createVisitation = async (req, res) => {
 
 exports.getVisitations = async (req, res) => {
   try {
-    // Add filtering options if needed
-    const visitations = await Visitation.find({ createdBy: req.user._id })
-      .sort({ visitDate: -1 })
+    // FIXED VERSION: Removed filter by createdBy to show all visitations
+    // If you need to filter by user, uncomment the createdBy filter
+    const visitations = await Visitation.find()
+      // .find({ createdBy: req.user._id }) // Only show the current user's visitations
+      .sort({ visitDate: 1 }) // Sort by date ascending (closest first)
       .populate('createdBy', 'name email');
-
+    
+    // Debug output to help diagnose issues
+    console.log(`Found ${visitations.length} visitations in database`);
+    
+    // Return all visitations
     res.status(200).json({
       success: true,
       count: visitations.length,
       data: visitations
     });
   } catch (error) {
+    console.error('Error fetching visitations:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error: ' + error.message
     });
   }
 };
@@ -70,8 +95,11 @@ exports.getVisitation = async (req, res) => {
     }
 
     // Check if user is authorized to view this visitation
-    if (visitation.createdBy._id.toString() !== req.user._id.toString() && 
-        !req.user.roles.includes('admin')) {
+    // MODIFIED: Only check if user is not admin
+    if (req.user.roles && 
+        !req.user.roles.includes('admin') && 
+        visitation.createdBy && 
+        visitation.createdBy._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this visitation'
@@ -105,8 +133,11 @@ exports.updateVisitation = async (req, res) => {
     }
     
     // Check if user is authorized to update this visitation
-    if (visitation.createdBy.toString() !== req.user._id.toString() && 
-        !req.user.roles.includes('admin')) {
+    // MODIFIED: Additional checks for null values and undefined properties
+    if (!req.user.roles || 
+        (!req.user.roles.includes('admin') && 
+         visitation.createdBy && 
+         visitation.createdBy.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this visitation'
@@ -208,8 +239,11 @@ exports.getVisitationImages = async (req, res) => {
     }
     
     // Check if user is authorized to view this visitation
-    if (visitation.createdBy.toString() !== req.user._id.toString() && 
-        !req.user.roles.includes('admin')) {
+    // MODIFIED: Better null checking
+    if (req.user.roles && 
+        !req.user.roles.includes('admin') && 
+        visitation.createdBy && 
+        visitation.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this visitation'

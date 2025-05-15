@@ -20,16 +20,17 @@ const uploadRoutes = require('./routes/upload.routes');
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
 app.use(cors({
-  origin: ['http://localhost:5173'], // Array of allowed origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: 'http://localhost:5173', // Can be string or array
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Add OPTIONS
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200 // For legacy browser support
 }));
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
